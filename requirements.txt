@@ -1,0 +1,8 @@
+streamlit
+pandas
+pyyaml
+requests
+msal
+openpyxl
+tabulate
+PyGithub
