@@ -6,3 +6,4 @@ msal
 openpyxl
 tabulate
 PyGithub
+psycopg2
