@@ -12,7 +12,7 @@ from features.job_description_uploader import OneDriveJDUploader
 from features.resume_uploader import OneDriveUploader
 from features.resumes_script import ResumeManager
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title = 'Sunfinty-CRM', layout="wide")
 with open('config.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
