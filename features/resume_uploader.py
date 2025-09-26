@@ -32,7 +32,7 @@ class OneDriveUploader:
                 "Authorization": f"Bearer {self.access_token}",
                 "Content-Type": "application/pdf"
             }
-            candidate_folder = candidate.replace(" ", "")
+            candidate_folder = candidate.replace(" ", "_")
             url = f"https://graph.microsoft.com/v1.0/users/{self.user_id}/drive/root:/Resumes:/children"
             response = requests.post(
                 url,
