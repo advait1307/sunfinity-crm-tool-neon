@@ -3,3 +3,4 @@ pandas
 pyyaml
 psycopg2-binary
 openpyxl
+msal
