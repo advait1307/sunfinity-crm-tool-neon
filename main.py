@@ -50,7 +50,7 @@ if pages == 'Clients':
     st.title('Client Manager')
     section = st.radio(' ', ['View Clients', 'Insert New Client', 'Update Client'], horizontal=True)
     if section == 'View Clients':
-        df = run_sql("SELECT * FROM clients;")
+        df = run_sql('SELECT * FROM clients order by "Client_ID" asc;')
         if df.empty:
             st.info("No data is present for clients.")
         else:
@@ -98,6 +98,7 @@ if pages == 'Clients':
             )
             onboarding = st.selectbox('Onboarding status', ['Completed', 'in-process', 'Rejected'])
             agreement_files = st.file_uploader('Upload Agreement Files', accept_multiple_files=True)
+            project = st.text_input('Project Name (if any)')
             submitted = st.form_submit_button('Submit')
 
             if submitted:
@@ -107,7 +108,7 @@ if pages == 'Clients':
                         url = client_uploader_obj.outlook_file_uploader(client_name,file)  # Assumes this returns a URL string
                         file_urls.append(url)
                 files_str = "\n".join(file_urls)
-                query = f'INSERT INTO clients ("Client_ID", "Client_Name", "Location", "Contact_Person_1", "Contact_Person_2", "Contact_Person_3", "Onboarding_status", "Agreements") VALUES (\'{client_id}\', \'{client_name}\', \'{location}\', \'{contact1}\', \'{contact2}\', \'{contact3}\', \'{onboarding}\', \'{files_str}\');'
+                query = f'INSERT INTO clients ("Client_ID", "Client_Name", "Location", "Contact_Person_1", "Contact_Person_2", "Contact_Person_3", "Onboarding_status", "Agreements", "Project") VALUES (\'{client_id}\', \'{client_name}\', \'{location}\', \'{contact1}\', \'{contact2}\', \'{contact3}\', \'{onboarding}\', \'{files_str}\', \'{project}\');'
                 run_sql(query)
                 st.success("Client added!")
     elif section == 'Update Client':
@@ -128,6 +129,7 @@ if pages == 'Clients':
             onboarding = st.selectbox('Onboarding status', ['Completed', 'in-process', 'Rejected'],
                                       index=['Completed', 'in-process', 'Rejected'].index(
                                           client_row['Onboarding_status']))
+            project = st.text_input('Project Name (if any)', value=client_row['Project'])
             st.markdown("**Existing Agreement Links:**")
             existing_links = client_row['Agreements'].split('\n') if client_row['Agreements'] else []
             links_to_keep = []
@@ -157,11 +159,12 @@ if pages == 'Clients':
                         "Contact_Person_2" = %s,
                         "Contact_Person_3" = %s,
                         "Onboarding_status" = %s,
-                        "Agreements" = %s
+                        "Agreements" = %s,
+                        "Project" = %s
                     WHERE "Client_ID" = %s;
                     '''
                 run_sql(query, (
-                    client_name, location, contact1, contact2, contact3, onboarding, updated_links_str,
+                    client_name, location, contact1, contact2, contact3, onboarding, updated_links_str,project,
                     client_row['Client_ID']
                 ))
                 st.success("Client updated successfully!")
