@@ -1,9 +1,5 @@
 streamlit
 pandas
 pyyaml
-requests
-msal
+psycopg2-binary
 openpyxl
-tabulate
-PyGithub
-psycopg2
