@@ -52,10 +52,10 @@ class ClientOneDriveUploader:
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/pdf"
         }
-        folder_path = f"Resumes/{candidate}"
+        folder_path = f"Agreements/{candidate}"
         folder_path_encoded = urllib.parse.quote(folder_path)
         uploaded_file.name = uploaded_file.name.replace(" ", "_")
-        uploaded_file.name = uploaded_file.name.replace("/", "")
+        uploaded_file.name = uploaded_file.name.replace("/", "-")
         file_path = f"{folder_path_encoded}/{uploaded_file.name}"
         upload_url = f"https://graph.microsoft.com/v1.0/users/{self.user_id}/drive/root:/{file_path}:/content"
         uploaded_file.seek(0)
