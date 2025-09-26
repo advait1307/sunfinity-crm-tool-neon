@@ -1,0 +1,15 @@
+onedrive:
+  client_id: cc5853e1-b525-46b9-af84-2b40061c1286
+  client_secret: NT38Q~euJQaeYM4rzvOojkN2-sKpcBqKvYqWkaP~
+  tenant_id: 5775e378-abf7-437d-8ea2-2ad81e4adda6
+  user_email: tech.support@sunfinity.tech
+  user_id: e72c0115-4900-4322-830f-37216cf0c9fd
+
+database:
+  host: ep-misty-hall-aebrz6mv-pooler.c-2.us-east-2.aws.neon.tech
+  dbname: sunfinity-crm
+  user: neondb_owner
+  password: npg_arWXq1hdFj7I
+  port: 5432
+  sslmode: require
+
