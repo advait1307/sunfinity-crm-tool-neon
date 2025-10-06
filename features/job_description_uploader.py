@@ -1,6 +1,7 @@
 import msal
 import requests
 import urllib.parse
+import streamlit as st
 
 class OneDriveJDUploader:
     def __init__(self, config):
@@ -14,6 +15,7 @@ class OneDriveJDUploader:
         self.scope = ["https://graph.microsoft.com/.default"]
         self.access_token = self.get_token()
 
+    st.cache()
     def get_token(self):
         app = msal.ConfidentialClientApplication(
             self.client_id,
@@ -26,13 +28,14 @@ class OneDriveJDUploader:
         else:
             return None
 
+    st.cache()
     def create_folder(self, company, uploaded_file):
         if uploaded_file is not None and company and self.user_id:
             headers = {
                 "Authorization": f"Bearer {self.access_token}",
                 "Content-Type": "application/pdf"
             }
-            company_folder = company.replace(" ", "")
+            company_folder = company.replace(" ", "_")
             url = f"https://graph.microsoft.com/v1.0/users/{self.user_id}/drive/root:/JobDescription:/children"
             response = requests.post(
                 url,

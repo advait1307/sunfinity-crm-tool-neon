@@ -1,9 +1,10 @@
 import pandas as pd
-
+import streamlit as st
 class OpportunitiesManager:
     def __init__(self, run_sql):
         self.run_sql = run_sql
 
+    st.cache()
     def load_opps(self):
         return self.run_sql('SELECT * FROM opportunities;')
 
@@ -18,6 +19,7 @@ class OpportunitiesManager:
             next_num = int(match.group(1)) + 1 if match else 1
         return f"OPP{next_num:06d}"
 
+    st.cache()
     def generate_candidate_links(self, names):
         if not names:
             return ''

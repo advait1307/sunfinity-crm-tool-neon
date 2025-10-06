@@ -8,10 +8,10 @@ class ClientUtils:
     def generate_client_id(self):
         df = self.run_sql('SELECT clients."Client_ID" FROM clients ORDER BY clients."Client_ID" DESC LIMIT 1')
         if df.empty:
-            return "CID01"
+            return "CID001"
         last_id = df.iloc[0]['Client_ID']
         num = int(last_id.replace("CID", ""))
-        return f"CID{num+1:02d}"
+        return f"CID{num+1:03d}"
 
     @staticmethod
     def format_contact(name, number, email):
