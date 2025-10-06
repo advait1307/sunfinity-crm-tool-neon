@@ -1,6 +1,7 @@
 import msal
 import requests
 import urllib.parse
+import streamlit as st
 
 class OneDriveUploader:
     def __init__(self, config):
@@ -14,6 +15,7 @@ class OneDriveUploader:
         self.scope = ["https://graph.microsoft.com/.default"]
         self.access_token = self.get_token()
 
+    st.cache()
     def get_token(self):
         app = msal.ConfidentialClientApplication(
             self.client_id,
@@ -26,13 +28,14 @@ class OneDriveUploader:
         else:
             return None
 
+    st.cache()
     def create_folder(self, candidate, uploaded_file):
         if uploaded_file is not None and candidate and self.user_id:
             headers = {
                 "Authorization": f"Bearer {self.access_token}",
                 "Content-Type": "application/pdf"
             }
-            candidate_folder = candidate.replace(" ", "_")
+            candidate_folder = candidate.replace(" ", "")
             url = f"https://graph.microsoft.com/v1.0/users/{self.user_id}/drive/root:/Resumes:/children"
             response = requests.post(
                 url,

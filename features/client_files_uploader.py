@@ -1,6 +1,7 @@
 import msal
 import requests
 import urllib.parse
+import streamlit as st
 
 class ClientOneDriveUploader:
     def __init__(self, run_sql_func, config):
@@ -15,6 +16,7 @@ class ClientOneDriveUploader:
         self.access_token = self.get_token()
         self.run_sql = run_sql_func
 
+    st.cache()
     def get_token(self):
         app = msal.ConfidentialClientApplication(
             self.client_id,
@@ -27,6 +29,7 @@ class ClientOneDriveUploader:
         else:
             return None
 
+    st.cache()
     def create_folder(self, candidate, uploaded_file):
         if uploaded_file is not None and candidate and self.user_id:
             headers = {
@@ -83,5 +86,3 @@ class ClientOneDriveUploader:
                 return self.upload_file(candidate, uploaded_file)
             else:
                 return 'NaN'
-
-

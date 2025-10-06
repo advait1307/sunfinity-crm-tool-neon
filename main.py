@@ -48,8 +48,8 @@ file_upload_obj = OneDriveUploader(config)
 pages = st.sidebar.radio('Select Page', ['Clients', 'Opportunities', 'Candidate Manager'])
 if pages == 'Clients':
     st.title('Client Manager')
-    section = st.radio(' ', ['View Clients', 'Insert New Client', 'Update Client'], horizontal=True)
-    if section == 'View Clients':
+    tab1, tab2, tab3 = st.tabs(['View Clients', 'Insert New Client', 'Update Client'])
+    with tab1:
         df = run_sql('SELECT * FROM clients order by "Client_ID" asc;')
         if df.empty:
             st.info("No data is present for clients.")
@@ -57,25 +57,26 @@ if pages == 'Clients':
             search_query = st.text_input('Search')
             if search_query:
                 pattern = re.escape(search_query)
-                mask = df.astype(str).agg(' '.join, axis=1).str.contains(pattern, case=False, na=False)
-                filtered_df = df[mask]
+                search_cols = ['Client_Name', 'Location', 'Contact_Person_1', 'Contact_Person_2', 'Contact_Person_3']
+                mask = df[search_cols].apply(lambda x: x.astype(str).str.contains(pattern, case=False, na=False)).any(axis=1)
+                filtered_df = df.loc[mask].copy()
             else:
-                filtered_df = df
-        filtered_df['Agreements'] = filtered_df['Agreements'].apply(client_function_obj.make_links)
-        filtered_df['Contact_Person_1'] = filtered_df['Contact_Person_1'].str.replace('|', '\\|')
-        filtered_df['Contact_Person_2'] = filtered_df['Contact_Person_2'].str.replace('|', '\\|')
-        filtered_df['Contact_Person_3'] = filtered_df['Contact_Person_3'].str.replace('|', '\\|')
-        excel_buffer = io.BytesIO()
-        filtered_df.to_excel(excel_buffer, index=False)
-        st.download_button(
-            label="⬇️ Download as Excel",
-            data=excel_buffer.getvalue(),
-            file_name="clients.xlsx",
-            key="download_clients_excel",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        st.markdown(filtered_df.to_markdown(index=False), unsafe_allow_html=True)
-    elif section == 'Insert New Client':
+                filtered_df = df.copy()
+
+            filtered_df['Agreements'] = filtered_df['Agreements'].apply(client_function_obj.make_links)
+            for col in ['Contact_Person_1', 'Contact_Person_2', 'Contact_Person_3']:
+                filtered_df[col] = filtered_df[col].str.replace('|', '\\|', regex=False)
+            excel_buffer = io.BytesIO()
+            filtered_df.to_excel(excel_buffer, index=False)
+            st.download_button(
+                label="⬇️ Download as Excel",
+                data=excel_buffer.getvalue(),
+                file_name="clients.xlsx",
+                key="download_clients_excel",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            st.markdown(filtered_df.to_markdown(index=False), unsafe_allow_html=True)
+    with tab2:
         with st.form('new_client'):
             client_id = client_function_obj.generate_client_id()
             client_name = st.text_input('Client Name')
@@ -105,13 +106,14 @@ if pages == 'Clients':
                 file_urls = []
                 if agreement_files:
                     for file in agreement_files:
-                        url = client_uploader_obj.outlook_file_uploader(client_name,file)  # Assumes this returns a URL string
+                        url = client_uploader_obj.outlook_file_uploader(client_name, file)
                         file_urls.append(url)
                 files_str = "\n".join(file_urls)
                 query = f'INSERT INTO clients ("Client_ID", "Client_Name", "Location", "Contact_Person_1", "Contact_Person_2", "Contact_Person_3", "Onboarding_status", "Agreements", "Project") VALUES (\'{client_id}\', \'{client_name}\', \'{location}\', \'{contact1}\', \'{contact2}\', \'{contact3}\', \'{onboarding}\', \'{files_str}\', \'{project}\');'
                 run_sql(query)
                 st.success("Client added!")
-    elif section == 'Update Client':
+                st.rerun()
+    with tab3:
         df = run_sql("SELECT * FROM clients;")
         if df.empty:
             st.info("No data is present for clients.")
@@ -119,16 +121,13 @@ if pages == 'Clients':
             client_names = df['Client_Name'].tolist()
             selected_client = st.selectbox('Select Client to Update', client_names)
             client_row = df[df['Client_Name'] == selected_client].iloc[0]
-
-            # Editable fields
             client_name = st.text_input('Client Name', value=client_row['Client_Name'], disabled=True)
             location = st.text_input('Location', value=client_row['Location'])
             contact1 = st.text_input('Contact Person 1', value=client_row['Contact_Person_1'])
             contact2 = st.text_input('Contact Person 2', value=client_row['Contact_Person_2'])
             contact3 = st.text_input('Contact Person 3', value=client_row['Contact_Person_3'])
             onboarding = st.selectbox('Onboarding status', ['Completed', 'in-process', 'Rejected'],
-                                      index=['Completed', 'in-process', 'Rejected'].index(
-                                          client_row['Onboarding_status']))
+                                      index=['Completed', 'in-process', 'Rejected'].index(client_row['Onboarding_status']))
             project = st.text_input('Project Name (if any)', value=client_row['Project'])
             st.markdown("**Existing Agreement Links:**")
             existing_links = client_row['Agreements'].split('\n') if client_row['Agreements'] else []
@@ -141,7 +140,7 @@ if pages == 'Clients':
                     if not st.checkbox(f"Delete Link {i + 1}", key=f"del_{i}"):
                         links_to_keep.append(link)
             st.markdown("**Add New Agreement Files:**")
-            new_files = st.file_uploader('Upload New Agreement Files', accept_multiple_files=True,key='update_files')
+            new_files = st.file_uploader('Upload New Agreement Files', accept_multiple_files=True, key='update_files')
             new_file_urls = []
             if new_files:
                 for file in new_files:
@@ -164,28 +163,31 @@ if pages == 'Clients':
                     WHERE "Client_ID" = %s;
                     '''
                 run_sql(query, (
-                    client_name, location, contact1, contact2, contact3, onboarding, updated_links_str,project,
+                    client_name, location, contact1, contact2, contact3, onboarding, updated_links_str, project,
                     client_row['Client_ID']
                 ))
                 st.success("Client updated successfully!")
+                st.rerun()
             if st.button('Delete Client'):
                 query = 'DELETE FROM clients WHERE "Client_ID" = %s;'
                 run_sql(query, (client_row['Client_ID'],))
                 st.warning("Client deleted!")
+                st.rerun()
+
 elif pages == 'Opportunities':
     st.title('Opportunities Manager')
     df_clients = run_sql('SELECT * FROM clients;')
     client_list = df_clients['Client_Name'].tolist() if not df_clients.empty else []
-    section = st.radio(' ', ['View Opportunities', 'Insert New Opportunity', 'Update Opportunity'], horizontal=True)
     df_opps = run_sql('SELECT * FROM opportunities order by "Opportunity_ID";')
     df_resumes = run_sql('SELECT * FROM resumes;')
     resume_choices = df_resumes['Name'].tolist() if not df_resumes.empty and 'Name' in df_resumes.columns else []
+    tab1, tab2, tab3 = st.tabs(['View Opportunities', 'Insert New Opportunity', 'Update Opportunity'])
 
-    if section == 'View Opportunities':
+    with tab1:
         if df_opps.empty:
             st.info('No opportunities available.')
         else:
-            col1,col2 = st.columns([8,1])
+            col1, col2 = st.columns([8, 1])
             with col1:
                 search_term = st.text_input('Search opportunities')
             with col2:
@@ -202,12 +204,9 @@ elif pages == 'Opportunities':
                 df_display = df_display[mask]
             if 'JD' in df_display.columns:
                 df_display['JD'] = df_display.apply(
-                    lambda row: f"[View JD]({row['JD']})" if pd.notnull(row['JD']) and row['JD'] not in ['NaN', '', 'No Job Description Uploaded'] else row['JD'],
-                    axis=1 )
+                    lambda row: f"[View JD]({row['JD']})" if pd.notnull(row['JD']) and row['JD'] not in ['NaN', '','No Job Description Uploaded'] else row['JD'],axis=1)
             if 'Name_of_Candidates_Shortlisted' in df_display.columns:
-                df_display['Name_of_Candidates_Shortlisted'] = df_display['Name_of_Candidates_Shortlisted'].apply(
-                    lambda x: x.replace('\n', '<br>') if isinstance(x, str) else x
-                )
+                df_display['Name_of_Candidates_Shortlisted'] = df_display['Name_of_Candidates_Shortlisted'].apply(lambda x: x.replace('\n', '<br>') if isinstance(x, str) else x)
             excel_buffer = io.BytesIO()
             df_display.to_excel(excel_buffer, index=False)
             st.download_button(
@@ -218,8 +217,7 @@ elif pages == 'Opportunities':
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             st.markdown(df_display.to_markdown(index=False), unsafe_allow_html=True)
-
-    elif section == 'Insert New Opportunity':
+    with tab2:
         if not client_list:
             st.info('No clients available. Please add clients first.')
         else:
@@ -257,8 +255,8 @@ elif pages == 'Opportunities':
                         len(candidate_names), candidates_markdown, closed_on
                     ))
                     st.success(f'Opportunity {opp_id} added!')
-
-    elif section == 'Update Opportunity':
+                    st.rerun()
+    with tab3:
         if df_opps.empty:
             st.info('No opportunities available to update.')
         else:
@@ -320,14 +318,16 @@ elif pages == 'Opportunities':
                         candidates_markdown, len(candidate_names), selected
                     ))
                     st.success(f'Opportunity {selected} updated!')
+                    st.rerun()
                 if delete_clicked:
                     query = 'DELETE FROM opportunities WHERE "Opportunity_ID" = %s;'
                     run_sql(query, (selected,))
                     st.warning(f'Opportunity {selected} deleted!')
+                    st.rerun()
 
 elif pages == 'Candidate Manager':
     st.title('Candidate Manager')
-    section = st.radio(' ', ['View Candidates', 'Insert New Candidate', 'Update Candidate'], horizontal=True)
+    tab1, tab2, tab3 = st.tabs(['View Candidates', 'Insert New Candidate', 'Update Candidate'])
     df_resumes = run_sql('SELECT * FROM resumes;')
     df_opps = run_sql('SELECT * FROM opportunities;')
     opp_choices = [
@@ -335,7 +335,7 @@ elif pages == 'Candidate Manager':
         for _, row in df_opps[df_opps['Deal_Status'] != 'Closed'].iterrows()
     ] if not df_opps.empty else []
 
-    if section == 'View Candidates':
+    with tab1:
         if df_resumes.empty:
             st.info('No resumes available.')
         else:
@@ -350,13 +350,13 @@ elif pages == 'Candidate Manager':
                 if not roles_str or roles_str == 'No Role':
                     return roles_str
                 roles = []
-                for role in roles_str.split(';'):
-                    match = re.match(r'(.+?) \((.+?):(.+?)\)', role)
+                for role_val in roles_str.split(';'):
+                    match = re.match(r'(.+?) \((.+?):(.+?)\)', role_val)
                     if match:
                         role_name, company, job_id = match.groups()
                         roles.append(f"{role_name} ({company}, {job_id})")
                     else:
-                        roles.append(role)
+                        roles.append(role_val)
                 return ', '.join(roles)
             df_display['Identified_for_Roles'] = df_display['Identified_for_Roles'].str.replace(':', '\\-')
             df_display['Identified_for_Roles'] = df_display['Identified_for_Roles'].str.replace(';', '<br>')
@@ -382,8 +382,7 @@ elif pages == 'Candidate Manager':
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             st.markdown(df_display.to_markdown(index=False), unsafe_allow_html=True)
-
-    elif section == 'Insert New Candidate':
+    with tab2:
         with st.form('new_resume'):
             # You may want to implement your own generate_resume_id using SQL
             entry_id = resumes_obj.generate_resume_id()
@@ -425,8 +424,8 @@ elif pages == 'Candidate Manager':
                     identified_roles_str, years_exp, current_ctc
                 ))
                 st.success(f'Resume for {name} added!')
-
-    elif section == 'Update Candidate':
+                st.rerun()
+    with tab3:
         if df_resumes.empty:
             st.info('No resumes available to update.')
         else:
@@ -487,8 +486,11 @@ elif pages == 'Candidate Manager':
                         identified_roles_str, years_exp, current_ctc, resume_row['Candidate_ID']
                     ))
                     st.success(f'Resume for {selected} updated!')
+                    st.rerun()
                 if delete_clicked:
                     query = 'DELETE FROM resumes WHERE "Candidate_ID" = %s;'
                     run_sql(query, (resume_row['Candidate_ID'],))
                     st.warning(f'Resume for {selected} deleted!')
+                    st.rerun()
+
 
